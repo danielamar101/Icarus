@@ -6,7 +6,99 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract Icarus is ERC1155, Ownable {
+
+contract DreamPass is ERC1155, Ownable {
+    using SafeMath for uint;
+
+    uint256 public DREAM_PASS_ID = 0;
+    uint256 public maxQuantity;
+    uint256 public mintCounter;
+
+    event AnnounceMint(address minter, uint id, uint count);
+
+    constructor(uint256 _maxQuantity, uint256 _mintCounter, string memory _contractURI) ERC1155(_contractURI) {
+        maxQuantity = _maxQuantity;
+        mintCounter = _mintCounter;
+    }
+
+    function mintDreampass() external{
+        require(mintCounter < maxQuantity, "All dreampasses have been minted!");
+        require(balanceOf(msg.sender,0) == 0, "You already have a dreampass!");
+
+        _mint(msg.sender, DREAM_PASS_ID,1,"");
+
+        mintCounter = SafeMath.add(mintCounter,1);
+
+        emit AnnounceMint(msg.sender,DREAM_PASS_ID, mintCounter);
+    }
+}
+
+contract Comic is ERC1155, Ownable {
+    using SafeMath for uint;
+
+    uint256 public COMIC_ID;
+    uint256 public priceToMintDiscounted;
+    uint256 public priceToMintFull;
+    uint256 public maxQuantity;
+    uint256 public mintCounter;
+
+    DreamPass dreampassContract;
+    address public dreampassAddress;
+
+    constructor(uint256 _id,uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _maxQuantity, uint256 _mintCounter, 
+    string memory _contractURI, address dreampassAddress) ERC1155(_contractURI) {
+        COMIC_ID = _id;
+        priceToMintDiscounted = _priceToMintDiscounted;
+        priceToMintFull = _priceToMintFull;
+        maxQuantity = _maxQuantity;
+        mintCounter = _mintCounter;
+
+        //Sets the address to use as reference
+        dreampassContract = DreamPass(dreampassAddress);
+    }
+
+    function setDreamPassAddress(address _address) external onlyOwner {
+        dreampassAddress = _address;
+    }
+
+    function mintComic() payable external {
+        if(dreampassContract.balanceOf(msg.sender,0) == 1)
+
+        if(balanceOf(msg.sender,DREAM_PASS_ID) == 1){ //If user has a dreampass
+            if(balanceOf(msg.sender,id) == 0){ //If user doesnt already have a discounted comic
+                require(msg.value == tokenIdToDiscountedPrice[id], "You did not send enough eth to purchase a discounted comic!(or sent too much)");
+                require(tokenCounter[id] <= tokenMaxQuantity[id],"No more tokens with this ID to mint!"); //If less than 500 have been minted
+
+                _mint(msg.sender, id,1,"");
+                tokenCounter[id] = SafeMath.add(tokenCounter[id],1);
+                emit AnnounceMint(msg.sender,id);
+
+            } else{ //They already have a discounted comic, try to mint at full price
+                require(msg.value == tokenIdToFullPrice[id],"You did not send enough eth to purchase a full price comic!");
+                require(balanceOf(msg.sender,id) < 3, "You have 3 comics already!");
+                require(tokenCounter[id] <= tokenMaxQuantity[id], "No more tokens with this ID to mint!");
+
+                _mint(msg.sender, id, 1, "");
+                tokenCounter[id] = SafeMath.add(tokenCounter[id],1);
+                emit AnnounceMint(msg.sender,id);
+
+            } 
+        } else{ //user doesnt have dreampass
+                require(msg.value == tokenIdToFullPrice[id],"You did not send enough eth to purchase a full price comic!");
+                require(balanceOf(msg.sender,id) < 2, "You have more than 2 comics already!(Could have up to 3 if you have a dream pass)");
+                require(tokenCounter[id] <= tokenMaxQuantity[id], "No more tokens with this ID to mint!");
+
+                _mint(msg.sender, id, 1, "");
+                tokenCounter[id] = SafeMath.add(tokenCounter[id],1);
+                emit AnnounceMint(msg.sender,id);
+        }
+
+
+
+    }
+}
+
+contract IcarusOld is ERC1155, Ownable {
 
     using SafeMath for uint;
 
