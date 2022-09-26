@@ -33,8 +33,15 @@ contract DreamPass is ERC1155, Ownable {
         }
     }
 
+
     constructor(uint256 _maxQuantity, string memory _contractURI) ERC1155(_contractURI) {
         maxQuantity = _maxQuantity;
+        distinctPassCount = 1;
+    }
+
+    function addVerifiedContractAddress(address _address, uint256 _id) public onlyOwner {
+        comicAddressMap[_address] = _id;
+        comicIdToAddressMap[_id] = _address;
     }
 
     function mintDreampass() external{
@@ -53,15 +60,15 @@ contract DreamPass is ERC1155, Ownable {
         uint256 idToBurn = getHighestOwnedDreampassId(_playerAddress);
         _burn(_playerAddress,idToBurn, 1);
 
-        emit AnnounceMint(msg.sender,idToBurn, 1);
+        emit AnnounceBurn(msg.sender,idToBurn, 1);
 
         _mint(_playerAddress,idToBurn + 1, 1,"");
         emit AnnounceMint(msg.sender,idToBurn + 1, 1);
     }
 
     function returnArrayOfOwnedPasses(address _address) public view returns (uint256[] memory _quantityArray, uint256 _amountOfPasses){
-        uint256 dreampassIdCounter = 1;
-        uint256[] memory quantityArray;
+        uint256 dreampassIdCounter = 0;
+        uint256[] memory quantityArray = new uint256[](distinctPassCount);
         uint256 amountOfPasses;
         while(dreampassIdCounter < distinctPassCount){
             uint256 currentTokenCount = balanceOf(_address,dreampassIdCounter);
@@ -97,6 +104,8 @@ contract DreamPass is ERC1155, Ownable {
                 return counter;
             }
         }
+        //Unreachable (should be at least)
+        return 0;
     }
 
     function setDistinctPassQuantity(uint256 _value) public onlyOwner{
@@ -143,9 +152,10 @@ contract Comic is ERC1155, Ownable {
         require(mintCounter < maxQuantity,"No more tokens with this ID to mint!"); //If less than 500 have been minted
 
         (uint256[] memory quantityArray, uint256 amountOfPasses) = dreampassContract.returnArrayOfOwnedPasses(msg.sender);
+        //TODO: Change code to allow for multiple min
         if(amountOfPasses > 0){ //If user has a dreampass
             
-            if(balanceOf(msg.sender,COMIC_ID) > 0){ //If user doesnt already have a discounted comic
+            if(balanceOf(msg.sender,COMIC_ID) == 0){ //If user doesnt already have a discounted comic
                 require(msg.value == priceToMintDiscounted, "You did not send enough eth to purchase a discounted comic!(or sent too much)");
                 
                 executeMintSequence();
