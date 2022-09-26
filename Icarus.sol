@@ -94,7 +94,7 @@ contract DreamPass is ERC1155, Ownable {
         }
     }
 
-    function getHighestOwnedDreampassId(address _address) public returns (uint256) {
+    function getHighestOwnedDreampassId(address _address) public view returns (uint256) {
         (uint256[] memory quantityArray, uint256 amountOfPasses) = returnArrayOfOwnedPasses(_address);
         require(amountOfPasses > 0, "You don't have any passes!");
 
@@ -128,6 +128,8 @@ contract Comic is ERC1155, Ownable {
 
     uint public releasedComicsUpTo;
 
+    mapping(address => uint256) fullPriceMintCountPerAddress;
+
     event AnnounceMint(address minter, uint id);
     event AnnounceComicRelease(string message, uint id);
 
@@ -148,32 +150,40 @@ contract Comic is ERC1155, Ownable {
         dreampassAddress = _address;
     }
 
+    //Only allows for a mint to occur if address has a dreampass id that is less than or equal to the comic id
+    function isAllowedToMintWithDreampass(address _address) public view returns(bool){
+        (uint256[] memory quantityArray, uint256 amountOfPasses) = dreampassContract.returnArrayOfOwnedPasses(_address);
+        if(amountOfPasses == 0){
+            return false;
+        }
+
+        uint256 counter = 0;
+        while(counter <= COMIC_ID - 1){
+            if(quantityArray[counter] > 0){
+                return true;
+            }
+            counter++;
+        }
+
+        return false;
+    }
+
     function mintComic() payable external {
         require(mintCounter < maxQuantity,"No more tokens with this ID to mint!"); //If less than 500 have been minted
+        
+        if(isAllowedToMintWithDreampass(msg.sender)){ //If user has a dreampass that is allowed to mint this comic
+            require(msg.value == priceToMintDiscounted, "You did not send enough eth to purchase a discounted comic!(or sent too much)");
+            executeMintSequence();
 
-        (uint256[] memory quantityArray, uint256 amountOfPasses) = dreampassContract.returnArrayOfOwnedPasses(msg.sender);
-        //TODO: Change code to allow for multiple min
-        if(amountOfPasses > 0){ //If user has a dreampass
-            
-            if(balanceOf(msg.sender,COMIC_ID) == 0){ //If user doesnt already have a discounted comic
-                require(msg.value == priceToMintDiscounted, "You did not send enough eth to purchase a discounted comic!(or sent too much)");
-                
-                executeMintSequence();
+            //CALL DREAMPASS TO BURN AND MINT NEW DREAMPASS
+            dreampassContract.burnAndMintDreampass(msg.sender);
 
-                //CALL DREAMPASS TO BURN AND MINT NEW DREAMPASS
-                dreampassContract.burnAndMintDreampass(msg.sender);
-
-            } else{ //They already have a discounted comic, try to mint at full price, dont burn
-                require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
-                require(balanceOf(msg.sender,COMIC_ID) < 3, "You have 3 comics already!");
-               
-                executeMintSequence();
-            } 
         } else{ //user doesnt have dreampass
-                require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
-                require(balanceOf(msg.sender,COMIC_ID) < 2, "You have 2 comics already! (get dreampass to be able to store 3)");
+            require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
+            require(fullPriceMintCountPerAddress[msg.sender] <= 2, "You have already minted 2 of these comics already!");
 
-                executeMintSequence();
+            executeMintSequence();
+            fullPriceMintCountPerAddress[msg.sender] = SafeMath.add(fullPriceMintCountPerAddress[msg.sender],1);
         }
     }
 
@@ -181,6 +191,7 @@ contract Comic is ERC1155, Ownable {
         _mint(msg.sender, COMIC_ID, 1, "");
         mintCounter = SafeMath.add(mintCounter,1);
         emit AnnounceMint(msg.sender,COMIC_ID);
+
     }
 
 }
