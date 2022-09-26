@@ -5,7 +5,40 @@ pragma solidity 0.8.1;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
+contract Governor is Ownable {
+
+    DreamPass dreampassContract;
+    // Comic[] comicContracts;
+    Comic test;
+
+    uint256 public maxQuantity = 500;
+    uint256 public DREAM_PASS_ID = 0;
+    uint256 public COMIC_ID = 1;
+    uint256 public priceToMintDiscounted = 0;
+    uint256 public priceToMintFull = 2;
+
+    //     constructor(uint256 _id,uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _maxQuantity,
+    // string memory _contractURI, address _dreampassAddress) ERC1155(_contractURI) {
+    constructor() payable {
+        dreampassContract = new DreamPass(maxQuantity, "Test.com");
+        Comic aComic = new Comic(COMIC_ID,priceToMintDiscounted,priceToMintFull,maxQuantity,"Test2.com", address(dreampassContract));
+
+        dreampassContract.addVerifiedContractAddress(address(aComic), COMIC_ID);
+        dreampassContract.setDistinctPassQuantity(4); //4 dreampassesof different token ids
+        test = aComic;
+
+        dreampassContract.mintDreampass();
+
+        aComic.mintComic();
+        aComic.mintComic();
+    }
+
+    // function mintAComic(){
+
+    // }
+}
 
 contract DreamPass is ERC1155, Ownable {
     using SafeMath for uint;
@@ -15,11 +48,12 @@ contract DreamPass is ERC1155, Ownable {
 
     uint256 public maxQuantity;
     uint256 public mintCounter = 0;
+    // string  public name = "Icarus Dreampass - Test";
 
     mapping(address => uint) comicAddressMap;
     mapping(uint => address) comicIdToAddressMap;
 
-    uint public distinctPassCount;
+    uint public distinctPassCount = 4;
 
     event AnnounceMint(address minter, uint id, uint count);
     event AnnounceBurn(address burner, uint id, uint count);
@@ -34,9 +68,8 @@ contract DreamPass is ERC1155, Ownable {
     }
 
 
-    constructor(uint256 _maxQuantity, string memory _contractURI) ERC1155(_contractURI) {
+    constructor(uint256 _maxQuantity, string memory _contractURI) ERC1155("https://bafybeifi4zmfuksnbcd3awbfsx3x6pfhcjjrwpuhgw26sr4nq7asfkoxg4.ipfs.nftstorage.link/0.json") {
         maxQuantity = _maxQuantity;
-        distinctPassCount = 1;
     }
 
     function addVerifiedContractAddress(address _address, uint256 _id) public onlyOwner {
@@ -44,7 +77,7 @@ contract DreamPass is ERC1155, Ownable {
         comicIdToAddressMap[_id] = _address;
     }
 
-    function mintDreampass() external{
+    function mintDreampass() external {
         require(mintCounter < maxQuantity, "All dreampasses have been minted!");
         require(balanceOf(msg.sender,0) == 0, "You already have a dreampass!");
 
@@ -85,7 +118,7 @@ contract DreamPass is ERC1155, Ownable {
     }
 
     function hasDreampass(address _address) public view returns (bool){
-        (uint256[] memory quantityArray, uint256 amountOfPasses) = returnArrayOfOwnedPasses(_address);
+        (, uint256 amountOfPasses) = returnArrayOfOwnedPasses(_address);
 
         if(amountOfPasses > 0){
             return true;
@@ -98,11 +131,12 @@ contract DreamPass is ERC1155, Ownable {
         (uint256[] memory quantityArray, uint256 amountOfPasses) = returnArrayOfOwnedPasses(_address);
         require(amountOfPasses > 0, "You don't have any passes!");
 
-        uint256 counter = quantityArray.length-1;
+        uint256 counter = distinctPassCount;
         while(counter > 0){
-            if(quantityArray[counter] > 0){
-                return counter;
+            if(quantityArray[counter-1] > 0){
+                return counter-1;
             }
+            counter--;
         }
         //Unreachable (should be at least)
         return 0;
@@ -111,6 +145,18 @@ contract DreamPass is ERC1155, Ownable {
     function setDistinctPassQuantity(uint256 _value) public onlyOwner{
         distinctPassCount = _value;
     }
+
+    function uri(uint256 tokenId) override public view returns(string memory){
+        return (string(abi.encodePacked("https://bafybeifi4zmfuksnbcd3awbfsx3x6pfhcjjrwpuhgw26sr4nq7asfkoxg4.ipfs.nftstorage.link/",Strings.toString(tokenId),".json")));
+    }
+
+    // function contractURI() public view returns (string memory) {
+    //     return "https://bafkreicrjevykbtciizyxuctq6dsfv47bq2yumnclhel2omcypidmsc7l4.ipfs.nftstorage.link/";
+    // }
+
+    // function baseTokenURI() public view returns (string memory) {
+    //     return "https://bafkreicrjevykbtciizyxuctq6dsfv47bq2yumnclhel2omcypidmsc7l4.ipfs.nftstorage.link/";
+    // }
 
 }
 
@@ -179,11 +225,11 @@ contract Comic is ERC1155, Ownable {
             dreampassContract.burnAndMintDreampass(msg.sender);
 
         } else{ //user doesnt have dreampass
+            require(fullPriceMintCountPerAddress[msg.sender] < 2, "You have already minted 2 of these comics already!");
             require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
-            require(fullPriceMintCountPerAddress[msg.sender] <= 2, "You have already minted 2 of these comics already!");
 
             executeMintSequence();
-            fullPriceMintCountPerAddress[msg.sender] = SafeMath.add(fullPriceMintCountPerAddress[msg.sender],1);
+            fullPriceMintCountPerAddress[msg.sender] += 1;
         }
     }
 
