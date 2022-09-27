@@ -19,13 +19,14 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
 <b>Note: We assume here your metadata and images have been uploaded to IPFS. I used [NFT.STORAGE](https://nft.storage/docs/how-to/mint-erc-1155/) to do this. If you dont want to go through all that trouble right now, I've included [the URIs](https://github.com/danielamar101/Icarus/blob/914aa14157e70f2698b7386ffc0c9454b0b98e51/Icarus.sol#L308-L309) I've created and used for testing at the bottom of the Icarus.sol file, which I will leave up. </b> 
 
 1. Deploy dreampass contract
-2. Deploy comic address with the following parameters:
+    1. _contractURI: copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
+3. Deploy comic address with the following parameters:
     1. _priceToMintDiscounted: 0 or .1 eth
     2. _priceToMintFull: .2 eth
     3. _dreampassAddress: copy the dreampass address from the contract created in the previous step
     4. _contractURI: copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
-3. call dreampass contract's function addVerifiedContractAddress with the address of the newly instantiated comic and the comic id
-4. Mint a dreampass
+4. call dreampass contract's function addVerifiedContractAddress with the address of the newly instantiated comic and the comic id
+5. Mint a dreampass
 6. Going to [OpenSea's Testnet site](https://testnets.opensea.io/), you should be able to find the dreampass you just minted
 7. Mint a comic with an id of 0
 8. You should now be able to see the dreampass that follows the one you just minted in your "inventory" and the comic book you just minted.
