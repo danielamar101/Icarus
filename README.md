@@ -34,6 +34,7 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
 
 ### Next Steps
 
-- Next steps would be to optimize this contract, as well as flesh out the governor contract to automate deployment. 
-- After that, security audits
-- After that you should be good to go fo release!
+- Add mintable moments (WIP branch : addMintMoments, It's almost done, just havent given it a full test)
+- Optimize this contract, as well as flesh out the governor contract to automate deployment. 
+- Security audits
+
