@@ -227,10 +227,10 @@ contract Comic is ERC1155, Ownable {
     }
 
     function mintComic() payable external {
-        require(mintCounter < maxQuantity,"No more tokens with this ID to mint!"); //If less than 500 have been minted
+        require(mintCounter < maxQuantity,"No more comics left to mint!"); 
         
         if(isAllowedToMintWithDreampass(msg.sender)){ //If user has a dreampass that is allowed to mint this comic
-            require(msg.value == priceToMintDiscounted, "You did not send enough eth to purchase a discounted comic!(or sent too much)");
+            require(msg.value == priceToMintDiscounted, "You did not send the right amount of eth to purchase a discounted comic!");
 
             executeMintSequence();
 
@@ -239,7 +239,7 @@ contract Comic is ERC1155, Ownable {
 
         } else{ //user doesnt have dreampass
             require(fullPriceMintCountPerAddress[msg.sender] < 2, "You have already minted 2 of these comics already!");
-            require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
+            require(msg.value == priceToMintFull,"You did not send the right amount of eth to purchase a full priced comic!");
 
             executeMintSequence();
             fullPriceMintCountPerAddress[msg.sender] += 1;
