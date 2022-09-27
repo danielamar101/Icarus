@@ -7,6 +7,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
+
+//WIP. Does not work in current state.
+//The idea with this is to automate the manual labor required to deploy this project, and removing the potential for errors.
 contract Governor is Ownable {
 
     DreamPass dreampassContract;
@@ -35,9 +38,6 @@ contract Governor is Ownable {
         aComic.mintComic();
     }
 
-    // function mintAComic(){
-
-    // }
 }
 
 contract DreamPass is ERC1155, Ownable {
@@ -71,6 +71,7 @@ contract DreamPass is ERC1155, Ownable {
     constructor() ERC1155("https://bafybeihdk4hsaz6nghfhojiktrdtay2hcxduufmwc5sr2vz5jz6m5x4kue.ipfs.nftstorage.link/{id}.json") {
     }
 
+    //Allows the dreampass to add verified comic addresses and map them to an ID
     function addVerifiedContractAddress(address _address, uint256 _id) public onlyOwner {
         comicAddressMap[_address] = _id;
         comicIdToAddressMap[_id] = _address;
@@ -87,6 +88,7 @@ contract DreamPass is ERC1155, Ownable {
         emit AnnounceMint(msg.sender,DREAM_PASS_ID, mintCounter);
     }
 
+    //Should only be called from the comic during discounted minting. Hence the modifier.
     function burnAndMintDreampass(address _playerAddress) external onlyComic(msg.sender){
         //Determine if player owns any dreampass
         uint256 idToBurn = getHighestOwnedDreampassId(_playerAddress);
@@ -98,6 +100,13 @@ contract DreamPass is ERC1155, Ownable {
         emit AnnounceMint(msg.sender,idToBurn + 1, 1);
     }
 
+    // Returns a tuple of information on owned dreampasses
+    /* 
+    * @param _address: Address to query information on
+    * @returns:
+    *   - _quantityArray: An array where each index represents a dreampass and each value at an index represents quantity of that dreampass
+    *   - _amountOfPasses: Total quantity of owned passes
+    */
     function returnArrayOfOwnedPasses(address _address) public view returns (uint256[] memory _quantityArray, uint256 _amountOfPasses){
         uint256 dreampassIdCounter = 0;
         uint256[] memory quantityArray = new uint256[](distinctPassCount);
@@ -126,6 +135,7 @@ contract DreamPass is ERC1155, Ownable {
         }
     }
 
+    //Returns the dreampass with the highest token id. This is how we choose which dreampass to burn if a user obtains multiple off the secondary market.
     function getHighestOwnedDreampassId(address _address) public view returns (uint256) {
         (uint256[] memory quantityArray, uint256 amountOfPasses) = returnArrayOfOwnedPasses(_address);
         require(amountOfPasses > 0, "You don't have any passes!");
@@ -137,14 +147,17 @@ contract DreamPass is ERC1155, Ownable {
             }
             counter--;
         }
-        //Unreachable (should be at least)
+
+        //Unreachable due to first require statement
         return 0;
     }
 
+    //To set how many different dreampass tokens there are
     function setDistinctPassQuantity(uint256 _value) public onlyOwner{
         distinctPassCount = _value;
     }
 
+    //Overrides ERC1155 standard method to be compatible with OpenSeas
     function uri(uint256 _tokenid) override public pure returns (string memory) {
         return string(
             abi.encodePacked(
@@ -154,7 +167,8 @@ contract DreamPass is ERC1155, Ownable {
         );
     }   
 
-     function contractURI() public pure returns (string memory) {
+    // Retuns metadata of the comic collection, also for OpenSeas compatability
+    function contractURI() public pure returns (string memory) {
         return "https://bafkreietsrxasxsrw6qdmitwjr3rnupsprfb5dmzxmf6jntb7bfsuhxdxi.ipfs.nftstorage.link/";
     }
 
@@ -166,8 +180,8 @@ contract Comic is ERC1155, Ownable {
     uint256 public COMIC_ID;
     uint256 public priceToMintDiscounted;
     uint256 public priceToMintFull;
-    uint256 public maxQuantity;
-    uint256 public mintCounter;
+    uint256 public maxQuantity = 500;
+    uint256 public mintCounter = 0;
 
     DreamPass dreampassContract;
     address public dreampassAddress;
@@ -179,15 +193,13 @@ contract Comic is ERC1155, Ownable {
     event AnnounceMint(address minter, uint id);
     event AnnounceComicRelease(string message, uint id);
 
-    constructor(uint256 _id,uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _maxQuantity,
-    string memory _contractURI, address _dreampassAddress) ERC1155("https://bafybeigyrrxoaspbexvqcqhen2awdcgxvsvdfieovd7th6sieveos3vcli.ipfs.nftstorage.link/{id}.json") {
+    constructor(uint256 _id,uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _maxQuantity, address _dreampassAddress) ERC1155("https://bafybeigyrrxoaspbexvqcqhen2awdcgxvsvdfieovd7th6sieveos3vcli.ipfs.nftstorage.link/{id}.json") {
         COMIC_ID = _id;
         priceToMintDiscounted = _priceToMintDiscounted;
         priceToMintFull = _priceToMintFull;
         maxQuantity = _maxQuantity;
-        mintCounter = 0;
 
-        //Sets the dreampass address to use as reference
+        //Sets the dreampass address to use as reference in various functions
         dreampassContract = DreamPass(_dreampassAddress);
         dreampassAddress = _dreampassAddress;
     }
@@ -219,6 +231,7 @@ contract Comic is ERC1155, Ownable {
         
         if(isAllowedToMintWithDreampass(msg.sender)){ //If user has a dreampass that is allowed to mint this comic
             require(msg.value == priceToMintDiscounted, "You did not send enough eth to purchase a discounted comic!(or sent too much)");
+
             executeMintSequence();
 
             //CALL DREAMPASS TO BURN AND MINT NEW DREAMPASS
@@ -240,6 +253,7 @@ contract Comic is ERC1155, Ownable {
 
     }
 
+    //Overrides ERC1155 method to be compatible with OpenSeas
     function uri(uint256 _tokenid) override public pure returns (string memory) {
         return string(
             abi.encodePacked(
@@ -249,6 +263,7 @@ contract Comic is ERC1155, Ownable {
         );
     }   
 
+    // Retuns metadata of the comic collection, also for OpenSeas compatability
     function contractURI() public view returns (string memory) {
         return string(
             abi.encodePacked(
@@ -259,5 +274,3 @@ contract Comic is ERC1155, Ownable {
     }
 
 }
-
-//constructor() public ERC1155("https://bafybeibe3bbogcize5hgjjylszjq3vdgrxg3l3t422w4u4anvsnzditd74.ipfs.nftstorage.link/{id}.json"){
