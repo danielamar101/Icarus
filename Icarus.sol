@@ -22,21 +22,21 @@ contract Governor is Ownable {
     uint256 public priceToMintDiscounted = 0;
     uint256 public priceToMintFull = 2;
 
-    //     constructor(uint256 _id,uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _maxQuantity,
-    // string memory _contractURI, address _dreampassAddress) ERC1155(_contractURI) {
     constructor() payable {
-        dreampassContract = new DreamPass();
-        Comic aComic = new Comic(COMIC_ID,priceToMintDiscounted,priceToMintFull,maxQuantity,"Test2.com", address(dreampassContract));
+        // dreampassContract = new DreamPass();
+        // Comic aComic = new Comic(COMIC_ID,priceToMintDiscounted,priceToMintFull,maxQuantity,"Test2.com", address(dreampassContract));
 
-        dreampassContract.addVerifiedContractAddress(address(aComic), COMIC_ID);
-        dreampassContract.setDistinctPassQuantity(4); //4 dreampassesof different token ids
-        test = aComic;
+        // dreampassContract.addVerifiedContractAddress(address(aComic), COMIC_ID);
+        // dreampassContract.setDistinctPassQuantity(4); //4 dreampassesof different token ids
+        // test = aComic;
 
-        dreampassContract.mintDreampass();
+        // dreampassContract.mintDreampass();
 
-        aComic.mintComic();
-        aComic.mintComic();
+        // aComic.mintComic();
+        // aComic.mintComic();
     }
+
+
 
 }
 
@@ -50,8 +50,9 @@ contract DreamPass is ERC1155, Ownable {
     uint256 public mintCounter = 0;
     // string  public name = "Icarus Dreampass - Test";
 
-    mapping(address => uint) comicAddressMap;
-    mapping(uint => address) comicIdToAddressMap;
+    address comicAddress;
+
+    string public contractURIString;
 
     uint public distinctPassCount = 4;
 
@@ -60,7 +61,7 @@ contract DreamPass is ERC1155, Ownable {
 
     //Create authentication around a comic book
     modifier onlyComic(address _address){
-        if(comicIdToAddressMap[comicAddressMap[_address]] == _address){
+        if(comicAddress == _address){
             _;
         } else{
             revert("The comic must call this method!");
@@ -68,13 +69,13 @@ contract DreamPass is ERC1155, Ownable {
     }
 
 
-    constructor() ERC1155("https://bafybeihdk4hsaz6nghfhojiktrdtay2hcxduufmwc5sr2vz5jz6m5x4kue.ipfs.nftstorage.link/{id}.json") {
+    constructor(string memory _contractURIString) ERC1155(_contractURIString) {
+        contractURIString = _contractURIString;
     }
 
     //Allows the dreampass to add verified comic addresses and map them to an ID
-    function addVerifiedContractAddress(address _address, uint256 _id) public onlyOwner {
-        comicAddressMap[_address] = _id;
-        comicIdToAddressMap[_id] = _address;
+    function addVerifiedContractAddress(address _address) public onlyOwner {
+        comicAddress = _address;
     }
 
     function mintDreampass() external {
@@ -89,9 +90,9 @@ contract DreamPass is ERC1155, Ownable {
     }
 
     //Should only be called from the comic during discounted minting. Hence the modifier.
-    function burnAndMintDreampass(address _playerAddress) external onlyComic(msg.sender){
+    function burnAndMintDreampass(address _playerAddress, uint256 _id) external onlyComic(msg.sender){
         //Determine if player owns any dreampass
-        uint256 idToBurn = getHighestOwnedDreampassId(_playerAddress);
+        uint256 idToBurn = getHighestOwnedDreampassId(_playerAddress, _id);
         _burn(_playerAddress,idToBurn, 1);
 
         emit AnnounceBurn(msg.sender,idToBurn, 1);
@@ -136,11 +137,11 @@ contract DreamPass is ERC1155, Ownable {
     }
 
     //Returns the dreampass with the highest token id. This is how we choose which dreampass to burn if a user obtains multiple off the secondary market.
-    function getHighestOwnedDreampassId(address _address) public view returns (uint256) {
+    function getHighestOwnedDreampassId(address _address, uint256 _tokenId) public view returns (uint256) {
         (uint256[] memory quantityArray, uint256 amountOfPasses) = returnArrayOfOwnedPasses(_address);
         require(amountOfPasses > 0, "You don't have any passes!");
 
-        uint256 counter = distinctPassCount;
+        uint256 counter = _tokenId;
         while(counter > 0){
             if(quantityArray[counter-1] > 0){
                 return counter-1;
@@ -158,18 +159,21 @@ contract DreamPass is ERC1155, Ownable {
     }
 
     //Overrides ERC1155 standard method to be compatible with OpenSeas
-    function uri(uint256 _tokenid) override public pure returns (string memory) {
+    function uri(uint256 _tokenid) override public view returns (string memory) {
         return string(
             abi.encodePacked(
-                "https://bafybeihdk4hsaz6nghfhojiktrdtay2hcxduufmwc5sr2vz5jz6m5x4kue.ipfs.nftstorage.link/",
+                contractURIString,
                 Strings.toString(_tokenid),".json"
             )
         );
     }   
 
     // Retuns metadata of the comic collection, also for OpenSeas compatability
-    function contractURI() public pure returns (string memory) {
-        return "https://bafkreietsrxasxsrw6qdmitwjr3rnupsprfb5dmzxmf6jntb7bfsuhxdxi.ipfs.nftstorage.link/";
+    function contractURI() public view returns (string memory) {
+        return string(abi.encodePacked(
+                contractURIString,
+                "info.json")
+            );
     }
 
 }
@@ -177,32 +181,50 @@ contract DreamPass is ERC1155, Ownable {
 contract Comic is ERC1155, Ownable {
     using SafeMath for uint;
 
-    uint256 public COMIC_ID;
-    uint256 public priceToMintDiscounted;
-    uint256 public priceToMintFull;
-    uint256 public maxQuantity = 500;
-    uint256 public mintCounter = 0;
-
+    struct ComicStruct {
+        uint256 COMIC_ID;
+        uint256 priceToMintDiscounted;
+        uint256 priceToMintFull;
+        uint256 maxQuantity;
+        uint256 mintCounter;
+    }
+    
+    ComicStruct[] Comics;
     DreamPass dreampassContract;
     address public dreampassAddress;
 
-    uint public releasedComicsUpTo;
+    string public contractURIString;
+    string public baseTokenURIString;
+
+    uint256 public comicCount = 0;
+    uint256 public STANDARD_COMIC_QUANTITY = 700;
 
     mapping(address => uint256) fullPriceMintCountPerAddress;
 
     event AnnounceMint(address minter, uint id);
     event AnnounceComicRelease(string message, uint id);
 
-    constructor(uint256 _id,uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _maxQuantity, address _dreampassAddress) ERC1155("https://bafybeigyrrxoaspbexvqcqhen2awdcgxvsvdfieovd7th6sieveos3vcli.ipfs.nftstorage.link/{id}.json") {
-        COMIC_ID = _id;
-        priceToMintDiscounted = _priceToMintDiscounted;
-        priceToMintFull = _priceToMintFull;
-        maxQuantity = _maxQuantity;
+    constructor(uint256 _priceToMintDiscounted, uint256 _priceToMintFull,
+    address _dreampassAddress, string memory _contractURIString) 
+    ERC1155(_contractURIString) {
+   
+        Comics.push(ComicStruct(comicCount, _priceToMintDiscounted, _priceToMintFull,STANDARD_COMIC_QUANTITY,0)); 
 
-        //Sets the dreampass address to use as reference in various functions
+        comicCount++;
+
+        //Sets the dreampass address to use as reference
         dreampassContract = DreamPass(_dreampassAddress);
         dreampassAddress = _dreampassAddress;
+
+        contractURIString = _contractURIString;
     }
+
+    function deployComic(uint256 _priceToMintDiscounted, uint256 _priceToMintFull) public onlyOwner {
+        Comics.push(ComicStruct(comicCount, _priceToMintDiscounted, _priceToMintFull,STANDARD_COMIC_QUANTITY,0));  
+
+        comicCount++;
+ } 
+
 
     function setDreamPassAddress(address _address) external onlyOwner {
         dreampassAddress = _address;
@@ -216,7 +238,7 @@ contract Comic is ERC1155, Ownable {
         }
 
         uint256 counter = 0;
-        while(counter <= COMIC_ID - 1){
+        while(counter <= comicCount - 1){
             if(quantityArray[counter] > 0){
                 return true;
             }
@@ -226,51 +248,62 @@ contract Comic is ERC1155, Ownable {
         return false;
     }
 
-    function mintComic() payable external {
-        require(mintCounter < maxQuantity,"No more comics left to mint!"); 
+    function mintComic(uint256 _tokenId) payable external {
+        require(_tokenId < comicCount);
+        require(Comics[_tokenId].mintCounter < Comics[_tokenId].maxQuantity,"No more comics left to mint!"); 
         
-        if(isAllowedToMintWithDreampass(msg.sender)){ //If user has a dreampass that is allowed to mint this comic
-            require(msg.value == priceToMintDiscounted, "You did not send the right amount of eth to purchase a discounted comic!");
-
-            executeMintSequence();
+        if(isAllowedToMintWithDreampass(msg.sender)){ 
+            require(msg.value == Comics[_tokenId].priceToMintDiscounted, "You did not send the right amount of eth to purchase a discounted comic!");
+            executeMintSequence(Comics[_tokenId].COMIC_ID);
 
             //CALL DREAMPASS TO BURN AND MINT NEW DREAMPASS
-            dreampassContract.burnAndMintDreampass(msg.sender);
+            dreampassContract.burnAndMintDreampass(msg.sender, _tokenId);
 
         } else{ //user doesnt have dreampass
             require(fullPriceMintCountPerAddress[msg.sender] < 2, "You have already minted 2 of these comics already!");
-            require(msg.value == priceToMintFull,"You did not send the right amount of eth to purchase a full priced comic!");
+            require(msg.value == Comics[_tokenId].priceToMintFull,"You did not send enough eth to purchase a full price comic!");
 
-            executeMintSequence();
+            executeMintSequence(Comics[_tokenId].COMIC_ID);
             fullPriceMintCountPerAddress[msg.sender] += 1;
         }
     }
 
-    function executeMintSequence() private {
-        _mint(msg.sender, COMIC_ID, 1, "");
-        mintCounter = SafeMath.add(mintCounter,1);
-        emit AnnounceMint(msg.sender,COMIC_ID);
+    function executeMintSequence(uint256 _tokenId) private {
+        _mint(msg.sender, _tokenId, 1, "");
+
+        Comics[_tokenId].mintCounter = SafeMath.add(Comics[_tokenId].mintCounter,1);
+        emit AnnounceMint(msg.sender,_tokenId);
 
     }
 
-    //Overrides ERC1155 method to be compatible with OpenSeas
-    function uri(uint256 _tokenid) override public pure returns (string memory) {
+    function uri(uint256 _tokenId) override public view returns (string memory) {
+        require(_tokenId < comicCount);
+
         return string(
             abi.encodePacked(
-                "https://bafybeigyrrxoaspbexvqcqhen2awdcgxvsvdfieovd7th6sieveos3vcli.ipfs.nftstorage.link/",
-                Strings.toString(_tokenid),".json"
+                contractURIString,
+                Strings.toString(_tokenId),".json"
             )
         );
     }   
 
-    // Retuns metadata of the comic collection, also for OpenSeas compatability
     function contractURI() public view returns (string memory) {
         return string(
             abi.encodePacked(
-                "https://bafybeigyrrxoaspbexvqcqhen2awdcgxvsvdfieovd7th6sieveos3vcli.ipfs.nftstorage.link/info",
-                Strings.toString(COMIC_ID),".json"
+                contractURIString,
+                "info.json"
             )
         );
     }
 
+    //Dev function
+    function setContractURI(string memory _contractURI) public {
+        contractURIString = _contractURI;
+    }
+
+
 }
+
+
+//comic URI: https://bafybeic2ch5jfsbo3xsot6bzajf33phcqzca6gy4mqrvwcdgstvgrm4fdq.ipfs.nftstorage.link/
+// mint pass URI: https://bafybeibwhojkw4szh6rzyxozpqo65e45vitaj4qbfsydicjal3iu75nlfa.ipfs.nftstorage.link/
