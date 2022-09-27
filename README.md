@@ -16,7 +16,7 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
 
 ### Deploy steps
 
-<b>Note: We assume here your metadata and images have been uploaded to IPFS. I used [NFT.STORAGE](https://nft.storage/docs/how-to/mint-erc-1155/) to do this</b>
+<b>Note: We assume here your metadata and images have been uploaded to IPFS. I used [NFT.STORAGE](https://nft.storage/docs/how-to/mint-erc-1155/) to do this. If you dont want to go through all that trouble right now, I've included the URIs I've created and used for testing at the bottom of the Icarus.sol file, which I will leave up. </b> 
 
 1. Deploy dreampass contract
 2. Deploy comic address with the following parameters:
