@@ -7,7 +7,7 @@ This repository is to store my implementation of Icarus. Was a good thought expe
 
 #### Development environment
 
-In order to test solidity contracts, we can just use the [Remix IDE](https://remix.ethereum.org/). It's simply a webapp so no need for a complex local environment. With it, you could compile and deploy contracts to any nets, including mainnet.
+In order to test solidity contracts, we can just use the [Remix IDE](https://remix.ethereum.org/). It's simply a webapp so no need for a complex local environment. With it, you could debug, compile and deploy contracts to any nets, including mainnet. AND we can use it to create unit and integration tests using web3, chai or any javascript test framework.
 
 Make sure you add your Etherscan API key and your github API key + credentials in order to be able to debug function calls and import contracts, respectively.
 
