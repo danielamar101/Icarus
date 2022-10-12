@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-
 contract DreamPass is ERC721, Ownable {
     using SafeMath for uint;
 
@@ -83,10 +82,9 @@ contract ComicKey is ERC1155, Ownable {
         if(idToComicAddress[comicAddressToId[_address]] != address(0)){
             _;
         } 
-        
     }
    
-    constructor(address _dreampassAddress, uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _momentPrice, string memory _name, string memory _symbol, string memory _contractURIString) 
+    constructor(address _dreampassAddress, address TESTER, uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _momentPrice, string memory _name, string memory _symbol, string memory _contractURIString) 
     ERC1155(_contractURIString) {
 
         //Deploy a new comic book contract
@@ -107,14 +105,16 @@ contract ComicKey is ERC1155, Ownable {
         idToMomentAddress[keyIdCount] = newMomentAddress;
         comicAddressToId[newMomentAddress];
 
-   
-        keyIdCount++;
-
-        //Sets the dreampass address to use as reference
+        //Sets the dreampass address to use as reference during snapshot
         dreampassContract = DreamPass(_dreampassAddress);
         dreampassAddress = _dreampassAddress;
 
+        //DEV: TESTING ONLY
+        _mint(TESTER,keyIdCount,1,"");
 
+
+
+        keyIdCount++;
         contractURIString = _contractURIString;
     }
 
@@ -122,30 +122,30 @@ contract ComicKey is ERC1155, Ownable {
         return dreampassContract.ownerOf(0);
     }
 
-    //Just to test snapshotting. Would probably make sense to have this off chain? Idk
-    function snapshotDreampassState() public returns (address[] memory _allDreampassOwners, uint256[] memory _allDreampassQuantities){
+    // //Just to test snapshotting. Would probably make sense to have this off chain? Idk
+    // function snapshotDreampassState() public returns (address[] memory _allDreampassOwners, uint256[] memory _allDreampassQuantities){
 
-        address[] memory allDreampassOwners = new address[];
-        uint256[] memory allDreampassQuantities = new uint256[];
-        uint256 arrayCounter = 0;
+    //     address[] memory allDreampassOwners = new address[];
+    //     uint256[] memory allDreampassQuantities = new uint256[];
+    //     uint256 arrayCounter = 0;
 
-        //TODO: Kinda nasty, implement better
-        for(uint256 i = 0; i < dreampassContract.mintCounter(); i++){
-            address ownerAtIndex = dreampassContract.ownerOf(i);
-            if(addressToQuantity[ownerAtIndex] == 0){
-                allDreampassOwners[arrayCounter] = ownerAtIndex;
-                arrayCounter++;
-            }
-            addressToQuantity[ownerAtIndex]++;
+    //     //TODO: Kinda nasty, implement better
+    //     for(uint256 i = 0; i < dreampassContract.mintCounter(); i++){
+    //         address ownerAtIndex = dreampassContract.ownerOf(i);
+    //         if(addressToQuantity[ownerAtIndex] == 0){
+    //             allDreampassOwners[arrayCounter] = ownerAtIndex;
+    //             arrayCounter++;
+    //         }
+    //         addressToQuantity[ownerAtIndex]++;
 
-        }
+    //     }
 
-        for(uint256 i = 0; i < arrayCounter; i++){
-            allDreampassQuantities[i] = addressToQuantity[allDreampassOwners[i]];
-        }
+    //     for(uint256 i = 0; i < arrayCounter; i++){
+    //         allDreampassQuantities[i] = addressToQuantity[allDreampassOwners[i]];
+    //     }
 
-        return (allDreampassOwners, allDreampassQuantities);
-    }
+    //     return (allDreampassOwners, allDreampassQuantities);
+    // }
 
 
     function setDreamPassAddress(address _address) public onlyOwner {
@@ -227,12 +227,12 @@ contract ComicKey is ERC1155, Ownable {
 
 contract Comic is ERC721, Ownable {
     using SafeMath for uint;
-
-    uint256 COMIC_ID;
-    uint256 mintCounter = 0;
-    uint256 maxQuantity = 700;
-    uint256 priceToMintDiscounted;
-    uint256 priceToMintFull;
+    //TODO: Revisit storing comic ID as we can just have it link to a new URI
+    uint256 public COMIC_ID;
+    uint256 public mintCounter = 0;
+    uint256 public maxQuantity = 700;
+    uint256 public priceToMintDiscounted;
+    uint256 public priceToMintFull;
 
     address comicKeyAddress;
     ComicKey comicKeyContract;
@@ -264,7 +264,7 @@ contract Comic is ERC721, Ownable {
             //BURN COMIC KEY
             comicKeyContract.burn(msg.sender, COMIC_ID);
 
-        } else{ //user doesnt have dreampass
+        } else{ //user doesnt have comic key
             require(fullPriceMintCountPerAddress[msg.sender] < 2, "You have already minted 2 of these comics already!");
             require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
 
@@ -303,13 +303,14 @@ contract Comic is ERC721, Ownable {
 contract Moment is ERC721, Ownable {
     using SafeMath for uint;
     //TODO: Revisit storing moment ID as we can just have it link to a new URI
-    uint256 MOMENT_ID;
-    uint256 mintCounter = 0;
-    uint256 maxQuantity = 50;
-    uint256 priceToMint;
-    address comicAddress;
+    uint256 public MOMENT_ID;
+    uint256 public mintCounter = 0;
+    uint256 public maxQuantity = 50;
+    uint256 public priceToMint;
+    address public omicAddress;
 
     Comic comicContract;
+    address comicAddress;
 
     string contractURIString;
 
