@@ -19,24 +19,41 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
 <b>Note: We assume here your metadata and images have been uploaded to IPFS. I used [NFT.STORAGE](https://nft.storage/docs/how-to/mint-erc-1155/) to do this</b>
 
 1. Deploy dreampass contract
-2. Deploy comic address with the following parameters:
-    1. _priceToMintDiscounted: 0 or .1 eth
-    2. _priceToMintFull: .2 eth
-    3. _dreampassAddress: copy the dreampass address from the contract created in the previous step
-    4. _contractURI: copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
-3. call dreampass contract's function addVerifiedContractAddress with the address of the newly instantiated comic and the comic id
-4. Mint a dreampass
-6. Going to [OpenSea's Testnet site](https://testnets.opensea.io/), you should be able to find the dreampass you just minted
-7. Mint a comic with an id of 0
-8. You should now be able to see the dreampass that follows the one you just minted in your "inventory" and the comic book you just minted.
-9. Mint the next comic 
-    1. _priceToMintDiscounted: 0 or .1 eth
-    2. _priceToMintFull: .2 eth
+2. Deploy the comicKey contract with the following parameters:
+    1. _dreampassAddress: the address of the dreampass contract you just created
+    2. _contractURIString: The URI for the comicKeys
+3. Deploy comic address with the following parameters:
+    1. _comicId: the token ID of the comic
+    2. _priceToMintDiscounted: 0 or .1 eth
+    3. _priceToMintFull: .2 eth
+    4. _comicKeyAddress: The address of the comicKey contract you just created
+    5. _name: anything works
+    6. _symbol: anything works
+    7. _contractURI: Copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
+4. Add the newly create comic contract's address to the state of the comicKey
+    1. Call setComicAddress in the ComicKey contract
+5. Deploy the moment contract with the following parameters:
+    1. _momentId: the token ID of the moment
+    2. _priceToMintDiscounted: 0 or .1 eth
+    3. _priceToMintFull: .2 eth
+    4. _comicAddress: The address of the comic contract you just created
+    5. _name: anything works
+    6. _symbol: anything works
+    7. _contractURI: Copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
+6. Mint a dreampass (mintDreampass)
+7. Call deployRound in the comicKey Contract
+    - Pass in an array of addresses and an array of lengths
+    - NOTE: During testing I manually pass in an array of addresses that should be airdropped a comic key. When deployed to main we will use some sort of API to screenshot the blockchain and obtain the full array and size 
+8.
+6. Going to [OpenSea's Testnet site](https://testnets.opensea.io/), you should be able to find the dreampass you just minted and a comicKey
+7. Mint a comic (mintComic)
+8. You should now be able to see the dreampass that follows the one you just minted in your "inventory" and the comic book you just minted. The comicKey will be gone
+9. Mint a moment
+10. Repeat steps 3-5 as releases occur
 
 
 ### Next Steps
 
-- Add mintable moments. This will require its own contract in order to have all of them be in the same collection(contract) on OpenSeas
 - Create mechanism for governing "Sale window"
 - Optimize this contract, as well as flesh out the governor contract to automate deployment.
 - Create a full suite of unit and integration tests  
