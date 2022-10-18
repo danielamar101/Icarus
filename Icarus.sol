@@ -307,7 +307,6 @@ contract Moment is ERC721, Ownable {
 
     function setComicAddress(address _address) public onlyOwner(){
         comicContract = Comic(_address);
-        comicAddress = _address;
     }
 
     //Dev function
@@ -342,8 +341,14 @@ contract Moment is ERC721, Ownable {
 }
 
 
+// Code Words
+// Dreampass = MintPass
+// Comic = Book
+// Key = Gate
+// Moment = Occasion
 
 // MintPass URI: https://bafybeidablwsufbcgqtswo7vxjc7ujdiy5atn7yeopoth46vlzpizfahbi.ipfs.nftstorage.link/
 // Book URI: https://bafybeicprpl5yqzqyylk7jb2ipup6jywsxaek7mdjz6ggz7gox76hr3pom.ipfs.nftstorage.link/
 // Gate URI: https://bafybeigait6ojhforlrr55lgv4vvn2rplavrbm6yihfik55zxu4vlweaey.ipfs.nftstorage.link/
 // Occasion URI: https://bafybeiaa4coi6nmkeancsjuw3j25qlv6xf6n2c3qjjc2qccccz7dzpcf2e.ipfs.nftstorage.link/
+
