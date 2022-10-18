@@ -85,8 +85,6 @@ contract ComicKey is ERC1155, Ownable {
     mapping(uint256 => address) public idToComicAddress;
     mapping(address => uint256) public comicAddressToId;
 
-
-
     modifier onlyComic(address _address){
         //Doubly linked for O(1) access
         if(idToComicAddress[comicAddressToId[_address]] != address(0)){
@@ -344,13 +342,8 @@ contract Moment is ERC721, Ownable {
 }
 
 
-// Code Words
-// Dreampass = MintPass
-// Comic = Book
-// Key = Gate
-// Moment = Occasion
 
-//comic URI: https://bafybeic2ch5jfsbo3xsot6bzajf33phcqzca6gy4mqrvwcdgstvgrm4fdq.ipfs.nftstorage.link/
-// mint pass URI: https://bafybeiafilbjkrc6nve22olrltouicnfi6nt2dpakzgpi3xfd3agry5ora.ipfs.nftstorage.link/
-// comicKey URI: https://bafybeicvqbazsoqhr7zwoya73fr7pwcn4k3n37tsojbnbycpdi7mqlcdwq.ipfs.nftstorage.link/
-// moment URI: https://bafybeibrtjfpjrumkadrp2e2qqnqgoytrndgxi7f32jflu4qq3xwjnotlq.ipfs.nftstorage.link/
+// MintPass URI: https://bafybeidablwsufbcgqtswo7vxjc7ujdiy5atn7yeopoth46vlzpizfahbi.ipfs.nftstorage.link/
+// Book URI: https://bafybeicprpl5yqzqyylk7jb2ipup6jywsxaek7mdjz6ggz7gox76hr3pom.ipfs.nftstorage.link/
+// Gate URI: https://bafybeigait6ojhforlrr55lgv4vvn2rplavrbm6yihfik55zxu4vlweaey.ipfs.nftstorage.link/
+// Occasion URI: https://bafybeiaa4coi6nmkeancsjuw3j25qlv6xf6n2c3qjjc2qccccz7dzpcf2e.ipfs.nftstorage.link/
