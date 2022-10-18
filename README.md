@@ -2,21 +2,25 @@
 
 # Icarus
 
-This repository is to store my implementation of Icarus. Was a good thought experiment to help Liran flesh out all the little nuiances involved. 
+This repository is to store my implementation of Icarus. Was a good thought experiment to help flesh out all the little nuiances involved. 
 
 
 #### Development environment
 
-In order to test solidity contracts, we can just use the [Remix IDE](https://remix.ethereum.org/). It's simply a webapp so no need for a complex local environment. With it, you could compile and deploy contracts to any nets, including mainnet.
+In order to test solidity contracts, we can just use the [Remix IDE](https://remix.ethereum.org/). It's simply a webapp so no need for a complex local environment. With it, you could debug, compile and deploy contracts to any nets, including mainnet. AND we can use it to create unit and integration tests using web3, chai or any javascript test framework.
 
 Make sure you add your Etherscan API key and your github API key + credentials in order to be able to debug function calls and import contracts, respectively.
 
 Also make sure you have your MetaMask wallet all set up and ready to go.
 
 
+### Deploy Flow
+
+![alt text](https://github.com/danielamar101/Icarus/blob/OctoberReArch/assets/DeploymentFlow.png)
+
 ### Deploy steps
 
-<b>Note: We assume here your metadata and images have been uploaded to IPFS. I used [NFT.STORAGE](https://nft.storage/docs/how-to/mint-erc-1155/) to do this</b>
+<b>Note: We assume here your metadata and images have been uploaded to IPFS. I used [NFT.STORAGE](https://nft.storage/docs/how-to/mint-erc-1155/) to do this. If you dont want to go through all that trouble right now, I've included [the URIs](https://github.com/danielamar101/Icarus/blob/914aa14157e70f2698b7386ffc0c9454b0b98e51/Icarus.sol#L308-L309) I've created and used for testing at the bottom of the Icarus.sol file, which I will leave up. </b> 
 
 1. Deploy dreampass contract
 2. Deploy the comicKey contract with the following parameters:
@@ -44,11 +48,8 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
 7. Call deployRound in the comicKey Contract
     - Pass in an array of addresses and an array of lengths
     - NOTE: During testing I manually pass in an array of addresses that should be airdropped a comic key. When deployed to main we will use some sort of API to screenshot the blockchain and obtain the full array and size 
-8.
-6. Going to [OpenSea's Testnet site](https://testnets.opensea.io/), you should be able to find the dreampass you just minted and a comicKey
-7. Mint a comic (mintComic)
-8. You should now be able to see the dreampass that follows the one you just minted in your "inventory" and the comic book you just minted. The comicKey will be gone
-9. Mint a moment
+8. Going to [OpenSea's Testnet site](https://testnets.opensea.io/), you should be able to find the dreampass you just minted and a comicKey
+9. Mint a comic (mintComic)
 10. Repeat steps 3-5 as releases occur
 
 
