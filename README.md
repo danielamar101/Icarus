@@ -31,9 +31,7 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
     2. _priceToMintDiscounted: 0 or .1 eth
     3. _priceToMintFull: .2 eth
     4. _comicKeyAddress: The address of the comicKey contract you just created
-    5. _name: anything works
-    6. _symbol: anything works
-    7. _contractURI: Copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
+    5. _contractURI: Copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
 4. Add the newly create comic contract's address to the state of the comicKey
     1. Call setComicAddress in the ComicKey contract
 5. Deploy the moment contract with the following parameters:
@@ -41,9 +39,7 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
     2. _priceToMintDiscounted: 0 or .1 eth
     3. _priceToMintFull: .2 eth
     4. _comicAddress: The address of the comic contract you just created
-    5. _name: anything works
-    6. _symbol: anything works
-    7. _contractURI: Copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
+    5. _contractURI: Copy the uri commented at the bottom of the file. This will be used as the baseUri for all tokens and the collection metadata
 6. Mint a dreampass (mintDreampass)
 7. Call deployRound in the comicKey Contract
     - Pass in an array of addresses and an array of lengths
@@ -56,6 +52,7 @@ Also make sure you have your MetaMask wallet all set up and ready to go.
 ### Next Steps
 
 - Create mechanism for governing "Sale window"
+    - Done, in the form of a saleIsActive flag. Pretty basic but does the trick
 - Optimize this contract, as well as flesh out the governor contract to automate deployment.
 - Create a full suite of unit and integration tests  
 - Security audits

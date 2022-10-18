@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.1;
 
-
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -21,7 +20,7 @@ contract DreamPass is ERC721, Ownable {
 
     address comicAddress;
 
-    event AnnounceMint(address minter, uint id, uint count);
+    event AnnounceMint(address minter, uint id);
 
     constructor(string memory _contractURIString) ERC721(ContractName,ContractSymbol) {
        contractURIString = _contractURIString;
@@ -31,11 +30,12 @@ contract DreamPass is ERC721, Ownable {
         require(mintCounter < maxQuantity, "All dreampasses have been minted!");
         require(balanceOf(msg.sender) == 0, "You already have a dreampass!");
 
-        _mint(msg.sender, mintCounter);
-
+        uint256 currentMintCount = mintCounter;
         mintCounter = SafeMath.add(mintCounter,1);
 
-        emit AnnounceMint(msg.sender,mintCounter, mintCounter);
+        _mint(msg.sender, currentMintCount);
+
+        emit AnnounceMint(msg.sender,currentMintCount);
     }
 
     // Retuns metadata of the comic collection, also for OpenSeas compatability
@@ -158,9 +158,7 @@ contract ComicKey is ERC1155, Ownable {
     function setContractURI(string memory _contractURI) public onlyOwner(){
         contractURIString = _contractURI;
     }
-
 }
-
 
 contract Comic is ERC721, Ownable {
     using SafeMath for uint;
@@ -202,24 +200,26 @@ contract Comic is ERC721, Ownable {
         if(comicKeyContract.balanceOf(msg.sender,COMIC_ID) > 0){  //If person owns a comic key, mint at discounted rate
             require(msg.value == priceToMintDiscounted, "You did not send the right amount of eth to purchase a discounted comic!");
             
-            executeMintSequence();
-
             // BURN COMIC KEY
             comicKeyContract.burn(msg.sender, COMIC_ID);
 
+            executeMintSequence();
         } else{ //user doesnt have comic key, mint at full price
             require(fullPriceMintCountPerAddress[msg.sender] < 2, "You have already minted 2 of these comics already!");
             require(msg.value == priceToMintFull,"You did not send enough eth to purchase a full price comic!");
 
+            fullPriceMintCountPerAddress[msg.sender] = SafeMath.add(fullPriceMintCountPerAddress[msg.sender],1);
+
             executeMintSequence();
-            fullPriceMintCountPerAddress[msg.sender] += 1;
         }
     }
 
     function executeMintSequence() private {
-        _mint(msg.sender, mintCounter);
-
+        uint256 currentMintCount = mintCounter;
         mintCounter = SafeMath.add(mintCounter,1);
+
+        _mint(msg.sender, currentMintCount);
+
         emit AnnounceMint(msg.sender,COMIC_ID);
     }
 
@@ -295,9 +295,11 @@ contract Moment is ERC721, Ownable {
         require(comicContract.balanceOf(msg.sender) > 0, "You must own a comic to mint a moment!"); 
         require(msg.value == priceToMint, "You did not send the right amount of eth to purchase a moment!");
 
-        _mint(msg.sender, mintCounter);
-
+        uint256 currentMintCount = mintCounter;
         mintCounter = SafeMath.add(mintCounter,1);
+
+        _mint(msg.sender, currentMintCount);
+
         emit AnnounceMint(msg.sender,MOMENT_ID);
     }
 
@@ -340,7 +342,6 @@ contract Moment is ERC721, Ownable {
     }
 }
 
-
 // Code Words
 // Dreampass = MintPass
 // Comic = Book
@@ -351,4 +352,3 @@ contract Moment is ERC721, Ownable {
 // Book URI: https://bafybeicprpl5yqzqyylk7jb2ipup6jywsxaek7mdjz6ggz7gox76hr3pom.ipfs.nftstorage.link/
 // Gate URI: https://bafybeigait6ojhforlrr55lgv4vvn2rplavrbm6yihfik55zxu4vlweaey.ipfs.nftstorage.link/
 // Occasion URI: https://bafybeiaa4coi6nmkeancsjuw3j25qlv6xf6n2c3qjjc2qccccz7dzpcf2e.ipfs.nftstorage.link/
-
