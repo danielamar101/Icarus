@@ -82,9 +82,6 @@ contract ComicKey is ERC1155, Ownable {
     mapping(uint256 => address) public idToComicAddress;
     mapping(address => uint256) public comicAddressToId;
 
-    mapping(uint256 => address) public idToMomentAddress;
-    mapping(address => uint256) public momentAddressToid;
-
     string public name = "Test";
     string public symbol = "TT";
 
@@ -105,10 +102,6 @@ contract ComicKey is ERC1155, Ownable {
     function setComicAddress(address _address, uint256 _keyId) public onlyOwner(){
         idToComicAddress[_keyId] = _address;
         comicAddressToId[_address] = _keyId; 
-    }
-    function setMomentAddress(address _address, uint256 _keyId) public onlyOwner(){
-        idToMomentAddress[_keyId] = _address;
-        comicAddressToId[_address] = _keyId;
     }
 
     function onERC1155Received(address, address, uint256, uint256, bytes memory) public virtual returns (bytes4) {
@@ -294,6 +287,11 @@ contract Moment is ERC721, Ownable {
 
         mintCounter = SafeMath.add(mintCounter,1);
         emit AnnounceMint(msg.sender,MOMENT_ID);
+    }
+
+    function setComicAddress(address _address) public onlyOwner(){
+        comicContract = Comic(_address);
+        comicAddress = _address;
     }
 
     //Dev function
