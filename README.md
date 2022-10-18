@@ -2,7 +2,7 @@
 
 # Icarus
 
-This repository is to store my implementation of Icarus. Was a good thought experiment to help Liran flesh out all the little nuiances involved. 
+This repository is to store my implementation of Icarus. Was a good thought experiment to help flesh out all the little nuiances involved. 
 
 
 #### Development environment
@@ -13,6 +13,10 @@ Make sure you add your Etherscan API key and your github API key + credentials i
 
 Also make sure you have your MetaMask wallet all set up and ready to go.
 
+
+### Deploy Flow
+
+![alt text](https://github.com/danielamar101/Icarus/blob/OctoberReArch/assets/DeploymentFlow.png)
 
 ### Deploy steps
 
