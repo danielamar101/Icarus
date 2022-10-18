@@ -68,7 +68,6 @@ contract ComicKey is ERC1155, Ownable {
     using SafeMath for uint;
     
     DreamPass dreampassContract;
-    address public dreampassAddress;
 
     string public contractURIString;
 
@@ -86,6 +85,9 @@ contract ComicKey is ERC1155, Ownable {
     mapping(uint256 => address) public idToMomentAddress;
     mapping(address => uint256) public momentAddressToid;
 
+    string public name = "Test";
+    string public symbol = "TT";
+
     modifier onlyChildren(address _address){
         //Doubly linked for O(1) access
         if(idToComicAddress[comicAddressToId[_address]] != address(0)){
@@ -93,50 +95,43 @@ contract ComicKey is ERC1155, Ownable {
         } 
     }
    
-    constructor(string memory _contractURIString) 
+    constructor(address _dreampassAddress, string memory _contractURIString) 
     ERC1155(_contractURIString) {
 
         contractURIString = _contractURIString;
+        dreampassContract = DreamPass(_dreampassAddress);
     }
 
-    function setDreamPassAddress(address _address) public onlyOwner {
-        dreampassAddress = _address;
+    function setComicAddress(address _address, uint256 _keyId) public onlyOwner(){
+        idToComicAddress[_keyId] = _address;
+        comicAddressToId[_address] = _keyId; 
+    }
+    function setMomentAddress(address _address, uint256 _keyId) public onlyOwner(){
+        idToMomentAddress[_keyId] = _address;
+        comicAddressToId[_address] = _keyId;
     }
 
-    // Deploy comic, moment and airdrop new comic key
+    function onERC1155Received(address, address, uint256, uint256, bytes memory) public virtual returns (bytes4) {
+        return this.onERC1155Received.selector;
+    }
+
+    // Deploy new comic key
     // @requires: allDreampassOwners and allDreampassQuantities to be of the same length and obtained from a snapshot
-    // 1. Instantiate a new comic book
-    // 2. Instantiate a new mintable moment
     // 3. Airdrop by:
     //         1. minting <quantity> new tokens of id COMIC_KEY_ID
     //         2. transfer all these newly minted tokens to the addresses in the passed in array 
-    function deployRound(address[] memory allDreampassOwners,uint256[] memory allDreampassQuantities, uint256 _priceToMintDiscounted, uint256 _priceToMintFull, uint256 _momentPrice, string memory _name, string memory _symbol, string memory _contractURI) public onlyOwner(){
-        require(allDreampassOwners.length == allDreampassQuantities.length, "Invalid size of airdrop arrays");
+    function deployRound(address[] memory allDreampassOwners,uint256[] memory allDreampassQuantities) public onlyOwner(){
+        require(allDreampassOwners.length == allDreampassQuantities.length, "Invalid");
         //TODO: Add more stringent input validation
-
-        Comic newComic = new Comic(keyIdCount, _priceToMintDiscounted, _priceToMintFull, address(this), _name, _symbol, _contractURI);
-        address newComicAddress = address(newComic);
-
-        //Add to comic record keeping
-        idToComicAddress[keyIdCount] = newComicAddress;
-        comicAddressToId[newComicAddress] = keyIdCount;
-
-        //Create mintable moment
-        Moment newMoment = new Moment(keyIdCount, _momentPrice, address(newComic), _name, _symbol, _contractURI);
-        address newMomentAddress = address(newMoment);
-
-        //Add to moment record keeping
-        idToMomentAddress[keyIdCount] = newMomentAddress;
-        comicAddressToId[newMomentAddress];
 
         //AIRDROP NEW COMIC KEYS
 
         // 1. Mint 500 
-        _mint(address(this),keyIdCount,STANDARD_COMIC_KEY_QUANTITY,"");
+        _mint(address(this),keyIdCount,STANDARD_COMIC_KEY_QUANTITY,"0x0");
 
         // 2. Transfer (Airdrop) comic keys to all dreampass holders
         for(uint256 i = 0; i < allDreampassOwners.length; i++){
-            safeTransferFrom(address(this),allDreampassOwners[i],keyIdCount, allDreampassQuantities[i], "");
+            _safeTransferFrom(address(this),allDreampassOwners[i],keyIdCount, allDreampassQuantities[i], "");
         }
 
         keyIdCount = SafeMath.add(keyIdCount,1);
@@ -145,7 +140,7 @@ contract ComicKey is ERC1155, Ownable {
     function burn(address _address, uint256 _comicId) public onlyChildren(msg.sender){
         _burn(_address, _comicId, 1);
 
-        AnnounceBurn(_address, _comicId);
+        emit AnnounceBurn(_address, _comicId);
     }
 
     //Overrides ERC1155 standard method to be compatible with OpenSeas
@@ -168,10 +163,10 @@ contract ComicKey is ERC1155, Ownable {
             );
     }
 
-    //Dev function
-    function setContractURI(string memory _contractURI) public onlyOwner(){
-        contractURIString = _contractURI;
-    }
+    // //Dev function
+    // function setContractURI(string memory _contractURI) public onlyOwner(){
+    //     contractURIString = _contractURI;
+    // }
 
 }
 
@@ -179,16 +174,16 @@ contract ComicKey is ERC1155, Ownable {
 contract Comic is ERC721, Ownable {
     using SafeMath for uint;
     //TODO: Revisit storing comic ID as we can just have each contract link to a new URI
-    uint256 public COMIC_ID;
-    uint256 public mintCounter = 0;
-    uint256 public maxQuantity = 700;
-    uint256 public priceToMintDiscounted;
-    uint256 public priceToMintFull;
+    uint public COMIC_ID;
+    uint public mintCounter = 0;
+    uint public maxQuantity = 700;
+    uint public priceToMintDiscounted;
+    uint public priceToMintFull;
 
     address comicKeyAddress;
     ComicKey comicKeyContract;
 
-    mapping(address => uint256) fullPriceMintCountPerAddress;
+    mapping(address => uint256) public fullPriceMintCountPerAddress;
 
     event AnnounceMint(address minter, uint id);
 
@@ -333,6 +328,13 @@ contract Moment is ERC721, Ownable {
 
 }
 
+// Code Words
+// Dreampass = MintPass
+// Comic = Book
+// Key = Gate
+// Moment = Occasion
 
-//comic URI: https://bafybeic2ch5jfsbo3xsot6bzajf33phcqzca6gy4mqrvwcdgstvgrm4fdq.ipfs.nftstorage.link/
-// mint pass URI: https://bafybeibwhojkw4szh6rzyxozpqo65e45vitaj4qbfsydicjal3iu75nlfa.ipfs.nftstorage.link/
+// MintPass URI: https://bafybeidablwsufbcgqtswo7vxjc7ujdiy5atn7yeopoth46vlzpizfahbi.ipfs.nftstorage.link/
+// Book URI: https://bafybeicprpl5yqzqyylk7jb2ipup6jywsxaek7mdjz6ggz7gox76hr3pom.ipfs.nftstorage.link/
+// Gate URI: https://bafybeigait6ojhforlrr55lgv4vvn2rplavrbm6yihfik55zxu4vlweaey.ipfs.nftstorage.link/
+// Occasion URI: https://bafybeiaa4coi6nmkeancsjuw3j25qlv6xf6n2c3qjjc2qccccz7dzpcf2e.ipfs.nftstorage.link/
