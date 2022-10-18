@@ -11,18 +11,19 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract DreamPass is ERC721, Ownable {
     using SafeMath for uint;
+    string public contractURIString;
 
-    uint256 public maxQuantity = 500;
     uint256 public mintCounter = 0;
+    uint256 public maxQuantity = 500;
+
+    string ContractName = "MintPass";
+    string ContractSymbol = "MP";
 
     address comicAddress;
 
-    string public contractURIString;
-
     event AnnounceMint(address minter, uint id, uint count);
 
-    constructor(string memory _contractURIString, string memory _name, string memory _symbol) ERC721(_name,_symbol) {
-       
+    constructor(string memory _contractURIString) ERC721(ContractName,ContractSymbol) {
        contractURIString = _contractURIString;
     }
 
@@ -66,10 +67,12 @@ contract DreamPass is ERC721, Ownable {
 
 contract ComicKey is ERC1155, Ownable {
     using SafeMath for uint;
+    string public contractURIString;
+
+    string public name = "Gate";
+    string public symbol = "GATE";
     
     DreamPass dreampassContract;
-
-    string public contractURIString;
 
     uint256 public keyIdCount = 0;
 
@@ -82,10 +85,9 @@ contract ComicKey is ERC1155, Ownable {
     mapping(uint256 => address) public idToComicAddress;
     mapping(address => uint256) public comicAddressToId;
 
-    string public name = "Test";
-    string public symbol = "TT";
 
-    modifier onlyChildren(address _address){
+
+    modifier onlyComic(address _address){
         //Doubly linked for O(1) access
         if(idToComicAddress[comicAddressToId[_address]] != address(0)){
             _;
@@ -94,9 +96,8 @@ contract ComicKey is ERC1155, Ownable {
    
     constructor(address _dreampassAddress, string memory _contractURIString) 
     ERC1155(_contractURIString) {
-
-        contractURIString = _contractURIString;
         dreampassContract = DreamPass(_dreampassAddress);
+        contractURIString = _contractURIString;
     }
 
     function setComicAddress(address _address, uint256 _keyId) public onlyOwner(){
@@ -115,7 +116,6 @@ contract ComicKey is ERC1155, Ownable {
     //         2. transfer all these newly minted tokens to the addresses in the passed in array 
     function deployRound(address[] memory allDreampassOwners,uint256[] memory allDreampassQuantities) public onlyOwner(){
         require(allDreampassOwners.length == allDreampassQuantities.length, "Invalid");
-        //TODO: Add more stringent input validation
 
         //AIRDROP NEW COMIC KEYS
 
@@ -130,7 +130,7 @@ contract ComicKey is ERC1155, Ownable {
         keyIdCount = SafeMath.add(keyIdCount,1);
     }
 
-    function burn(address _address, uint256 _comicId) public onlyChildren(msg.sender){
+    function burn(address _address, uint256 _comicId) public onlyComic(msg.sender){
         _burn(_address, _comicId, 1);
 
         emit AnnounceBurn(_address, _comicId);
@@ -157,15 +157,20 @@ contract ComicKey is ERC1155, Ownable {
     }
 
     // //Dev function
-    // function setContractURI(string memory _contractURI) public onlyOwner(){
-    //     contractURIString = _contractURI;
-    // }
+    function setContractURI(string memory _contractURI) public onlyOwner(){
+        contractURIString = _contractURI;
+    }
 
 }
 
 
 contract Comic is ERC721, Ownable {
     using SafeMath for uint;
+    string contractURIString;
+
+    string ContractName = "Book";
+    string ContractSymbol = "BOOK";
+
     //TODO: Revisit storing comic ID as we can just have each contract link to a new URI
     uint public COMIC_ID;
     uint public mintCounter = 0;
@@ -173,20 +178,19 @@ contract Comic is ERC721, Ownable {
     uint public priceToMintDiscounted;
     uint public priceToMintFull;
 
-    address comicKeyAddress;
     ComicKey comicKeyContract;
+
+    //set to true for dev purposes
+    bool public saleIsActive = true;
 
     mapping(address => uint256) public fullPriceMintCountPerAddress;
 
     event AnnounceMint(address minter, uint id);
 
-    string contractURIString;
-
-    constructor(uint256 _comicId, uint256 _priceToMintDiscounted, uint256 _priceToMintFull, address _comicKeyAddress, string memory _name, string memory _symbol, string memory _contractURIString) ERC721(_name,_symbol) {
+    constructor(uint256 _comicId, uint256 _priceToMintDiscounted, uint256 _priceToMintFull, address _comicKeyAddress, string memory _contractURIString) ERC721(ContractName,ContractSymbol) {
         COMIC_ID = _comicId;
         priceToMintDiscounted = _priceToMintDiscounted;
         priceToMintFull = _priceToMintFull;
-        comicKeyAddress = _comicKeyAddress;
 
         comicKeyContract = ComicKey(_comicKeyAddress);
 
@@ -194,6 +198,7 @@ contract Comic is ERC721, Ownable {
     }
 
     function mintComic() payable external {
+        require(saleIsActive, "Sale window is not open!");
         require(mintCounter < maxQuantity,"No more comics left to mint!"); 
         
         if(comicKeyContract.balanceOf(msg.sender,COMIC_ID) > 0){  //If person owns a comic key, mint at discounted rate
@@ -218,6 +223,10 @@ contract Comic is ERC721, Ownable {
 
         mintCounter = SafeMath.add(mintCounter,1);
         emit AnnounceMint(msg.sender,COMIC_ID);
+    }
+
+    function flipSaleState() public onlyOwner {
+        saleIsActive = !saleIsActive;
     }
 
     //Dev function
@@ -254,6 +263,11 @@ contract Comic is ERC721, Ownable {
 
 contract Moment is ERC721, Ownable {
     using SafeMath for uint;
+    string contractURIString;
+
+    string ContractName = "Occasion";
+    string ContractSymbol = "OCC";
+
     //TODO: Revisit storing moment ID as we can just have it link to a new URI
     uint256 public MOMENT_ID;
     uint256 public mintCounter = 0;
@@ -261,23 +275,23 @@ contract Moment is ERC721, Ownable {
     uint256 public priceToMint;
 
     Comic comicContract;
-    address public comicAddress;
 
-    string contractURIString;
+    //set to true for dev purposes
+    bool public saleIsActive = true;
 
     event AnnounceMint(address minter, uint id);
 
-    constructor(uint256 _momentId, uint256 _priceToMint, address _comicAddress, string memory _name, string memory _symbol, string memory _contractURIString) ERC721(_name,_symbol) {
+    constructor(uint256 _momentId, uint256 _priceToMint, address _comicAddress, string memory _contractURIString) ERC721(ContractName,ContractSymbol) {
         MOMENT_ID = _momentId;
         priceToMint = _priceToMint;
 
-        comicAddress = _comicAddress;
         comicContract = Comic(_comicAddress);
 
         contractURIString = _contractURIString;
     }
 
     function mintMoment() payable external {
+        require(saleIsActive, "Sale window is not open!");
         require(mintCounter < maxQuantity,"No more comics left to mint!");
         require(balanceOf(msg.sender) == 0, "You can only own one mintable moment per a wallet!");
         require(comicContract.balanceOf(msg.sender) > 0, "You must own a comic to mint a moment!"); 
@@ -287,6 +301,10 @@ contract Moment is ERC721, Ownable {
 
         mintCounter = SafeMath.add(mintCounter,1);
         emit AnnounceMint(msg.sender,MOMENT_ID);
+    }
+
+    function flipSaleState() public onlyOwner() {
+        saleIsActive = !saleIsActive;
     }
 
     function setComicAddress(address _address) public onlyOwner(){
@@ -323,8 +341,8 @@ contract Moment is ERC721, Ownable {
     function _baseURI() internal view virtual override returns (string memory) {
         return contractURIString;
     }
-
 }
+
 
 // Code Words
 // Dreampass = MintPass
@@ -332,7 +350,7 @@ contract Moment is ERC721, Ownable {
 // Key = Gate
 // Moment = Occasion
 
-// MintPass URI: https://bafybeidablwsufbcgqtswo7vxjc7ujdiy5atn7yeopoth46vlzpizfahbi.ipfs.nftstorage.link/
-// Book URI: https://bafybeicprpl5yqzqyylk7jb2ipup6jywsxaek7mdjz6ggz7gox76hr3pom.ipfs.nftstorage.link/
-// Gate URI: https://bafybeigait6ojhforlrr55lgv4vvn2rplavrbm6yihfik55zxu4vlweaey.ipfs.nftstorage.link/
-// Occasion URI: https://bafybeiaa4coi6nmkeancsjuw3j25qlv6xf6n2c3qjjc2qccccz7dzpcf2e.ipfs.nftstorage.link/
+//comic URI: https://bafybeic2ch5jfsbo3xsot6bzajf33phcqzca6gy4mqrvwcdgstvgrm4fdq.ipfs.nftstorage.link/
+// mint pass URI: https://bafybeiafilbjkrc6nve22olrltouicnfi6nt2dpakzgpi3xfd3agry5ora.ipfs.nftstorage.link/
+// comicKey URI: https://bafybeicvqbazsoqhr7zwoya73fr7pwcn4k3n37tsojbnbycpdi7mqlcdwq.ipfs.nftstorage.link/
+// moment URI: https://bafybeibrtjfpjrumkadrp2e2qqnqgoytrndgxi7f32jflu4qq3xwjnotlq.ipfs.nftstorage.link/
